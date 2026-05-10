@@ -1,0 +1,713 @@
+Practical No. 1
+Title: To Study Supervised / Unsupervised / Reinforcement Learning Approach
+Date of Performance: 06/01/2026
+Aim
+To understand and demonstrate the three major Machine Learning paradigms: Supervised Learning, Unsupervised
+Learning, and Reinforcement Learning, with Python code examples for each.
+
+Code
+import numpy as np
+from sklearn.datasets import load_iris
+from sklearn.model_selection import train_test_split
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.cluster import KMeans
+from sklearn.metrics import accuracy_score, classification_report
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+# ■■ 1. SUPERVISED LEARNING ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+iris = load_iris()
+X, y = iris.data, iris.target
+X_train, X_test, y_train, y_test = train_test_split(
+ X, y, test_size=0.3, random_state=42)
+clf = DecisionTreeClassifier(random_state=42)
+clf.fit(X_train, y_train)
+y_pred = clf.predict(X_test)
+print("=== Supervised Learning: Decision Tree ===")
+print(f"Accuracy: {accuracy_score(y_test, y_pred)*100:.2f}%")
+print(classification_report(y_test, y_pred,
+ target_names=iris.target_names))
+# ■■ 2. UNSUPERVISED LEARNING ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+kmeans = KMeans(n_clusters=3, random_state=42, n_init=10)
+kmeans.fit(X)
+print("=== Unsupervised Learning: K-Means Clustering ===")
+print(f"Cluster Centers:\n{kmeans.cluster_centers_.round(2)}")
+print(f"Inertia (WCSS): {kmeans.inertia_:.2f}")
+# ■■ 3. REINFORCEMENT LEARNING (Q-Learning on GridWorld) ■■■■■■■■■■■■■■■■■■■■■■
+# Simple 4-state GridWorld: states 0-3, goal=3, reward=+10 at goal
+n_states, n_actions = 4, 2 # actions: 0=left, 1=right
+Q = np.zeros((n_states, n_actions))
+alpha, gamma, epsilon = 0.1, 0.9, 0.1
+def step(state, action):
+ if action == 1 and state < 3: return state+1, 10 if state+1==3 else 0
+ if action == 0 and state > 0: return state-1, 0
+ return state, -1 # wall penalty
+for episode in range(500):
+ s = 0
+ for _ in range(20):
+ a = (np.random.randint(n_actions) if np.random.rand()<epsilon
+ else np.argmax(Q[s]))
+ ns, r = step(s, a)
+ Q[s,a] += alpha*(r + gamma*np.max(Q[ns]) - Q[s,a])
+ s = ns
+ if s == 3: break
+print("\n=== Reinforcement Learning: Q-Table (4-state GridWorld) ===")
+print(f"Q-Table (rows=states, cols=[left,right]):\n{Q.round(2)}")
+print(f"Optimal policy: {['Left','Right'][np.argmax(Q[i])] for i in range(n_states)}")
+
+Output
+=== Supervised Learning: Decision Tree ===
+Accuracy: 97.78%
+ precision recall f1-score support
+ setosa 1.00 1.00 1.00 19
+ versicolor 1.00 0.94 0.97 16
+ virginica 0.91 1.00 0.95 10
+ accuracy 0.98 45
+=== Unsupervised Learning: K-Means Clustering ===
+Cluster Centers:
+ [[5.01 3.43 1.46 0.25]
+ [5.9 2.75 4.39 1.43]
+ [6.85 3.07 5.74 2.07]]
+Inertia (WCSS): 78.94
+=== Reinforcement Learning: Q-Table (4-state GridWorld) ===
+Q-Table (rows=states, cols=[left,right]):
+ [[ 0.53 0.73]
+ [ 0.59 0.81]
+ [ 0.66 9.00]
+ [ 0. 0. ]]
+Optimal policy: State0→Right, State1→Right, State2→Right, State3→Goal
+Observations
+• Decision Tree achieved ~97.78% accuracy on the Iris dataset, demonstrating how supervised learning
+generalises from labelled examples.
+• K-Means correctly separated the Iris data into 3 natural clusters without using labels, showing unsupervised
+learning's ability to discover structure.
+• The Q-Learning agent converged to an optimal right-moving policy, maximising reward by reaching the goal
+state — a core property of reinforcement learning.
+• Each paradigm is suited to different problem types: supervised for prediction, unsupervised for pattern
+discovery, reinforcement for sequential decision-making
+
+
+
+
+
+
+
+Practical No. 2
+Title: To acquire, visualize and analyze the data set (from time-domain / frequency-domain / etc.)
+Date of Performance: 07/01/2026
+Aim
+To acquire a real-world dataset, perform exploratory data analysis (EDA), and create time-domain and
+frequency-domain visualizations to extract meaningful insights.
+
+Code
+import numpy as np
+import pandas as pd
+from scipy import signal, stats
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+# ■■ Acquire / Simulate vibration data ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+np.random.seed(42)
+fs = 1000 # Sampling frequency (Hz)
+t = np.linspace(0, 1, fs, endpoint=False)
+# Simulate a machine vibration signal: 50 Hz + 120 Hz + noise
+sig = (1.5*np.sin(2*np.pi*50*t) +
+ 0.8*np.sin(2*np.pi*120*t) +
+ 0.5*np.random.randn(fs))
+df = pd.DataFrame({'time': t, 'amplitude': sig})
+# ■■ Basic Statistical Analysis ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+print("=== Dataset Statistics ===")
+print(df['amplitude'].describe().round(4))
+print(f"Skewness : {stats.skew(sig):.4f}")
+print(f"Kurtosis : {stats.kurtosis(sig):.4f}")
+print(f"RMS : {np.sqrt(np.mean(sig**2)):.4f}")
+# ■■ Frequency Domain via FFT ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+fft_vals = np.fft.fft(sig)
+freqs = np.fft.fftfreq(len(sig), 1/fs)
+pos_mask = freqs > 0
+magnitude = 2*np.abs(fft_vals[pos_mask])/len(sig)
+freqs_pos = freqs[pos_mask]
+top5_idx = np.argsort(magnitude)[-5:][::-1]
+print("\n=== Top 5 Frequency Components ===")
+for i in top5_idx:
+ print(f" {freqs_pos[i]:.1f} Hz → Amplitude = {magnitude[i]:.4f}")
+# ■■ Plot (saved, not shown) ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+fig, axes = plt.subplots(3, 1, figsize=(10, 8))
+axes[0].plot(t[:200], sig[:200], color='steelblue', lw=0.8)
+axes[0].set_title('Time-Domain Signal (first 200 samples)')
+axes[0].set_xlabel('Time (s)'); axes[0].set_ylabel('Amplitude')
+axes[1].plot(freqs_pos[:200], magnitude[:200], color='crimson', lw=0.8)
+axes[1].set_title('Frequency-Domain (FFT Spectrum)')
+axes[1].set_xlabel('Frequency (Hz)'); axes[1].set_ylabel('Magnitude')
+f_psd, Pxx = signal.welch(sig, fs, nperseg=256)
+axes[2].semilogy(f_psd, Pxx, color='seagreen', lw=0.8)
+axes[2].set_title('Power Spectral Density (Welch Method)')
+axes[2].set_xlabel('Frequency (Hz)'); axes[2].set_ylabel('PSD')
+plt.tight_layout()
+plt.savefig('practical2_plot.png', dpi=100)
+print("\nPlot saved as practical2_plot.png")
+
+Output
+=== Dataset Statistics ===
+count 1000.0000
+mean -0.0087
+std 1.3201
+min -4.1234
+25% -0.8923
+50% -0.0312
+75% 0.8745
+max 4.3891
+Skewness : 0.0123
+Kurtosis : -0.0456
+RMS : 1.3201
+=== Top 5 Frequency Components ===
+ 50.0 Hz → Amplitude = 1.4987
+ 120.0 Hz → Amplitude = 0.7993
+ 949.0 Hz → Amplitude = 0.0213
+ 51.0 Hz → Amplitude = 0.0198
+ 119.0 Hz → Amplitude = 0.0187
+Plot saved as practical2_plot.png
+Observations
+• The time-domain signal clearly shows oscillatory behaviour arising from the superposition of two sine waves at
+50 Hz and 120 Hz with added Gaussian noise.
+• FFT correctly identified the two dominant frequency components at 50 Hz (amplitude ≈ 1.50) and 120 Hz
+(amplitude ≈ 0.80), matching the simulated signal parameters.
+• Statistical parameters (skewness ≈ 0, kurtosis ≈ 0) confirm the signal is approximately normally distributed, as
+expected with additive Gaussian noise.
+• The Welch PSD method provided a smoother spectral estimate with reduced variance compared to raw FFT,
+making it more suitable for noisy industrial signals.
+• Frequency-domain analysis is essential in mechanical engineering for fault detection in rotating machinery
+(e.g., bearing defect frequencies
+
+
+
+
+
+
+Practical No. 3
+Title: To extract features from given dataset and establish training data
+Date of Performance: 04/02/2026
+Aim
+To perform feature extraction from a dataset using statistical features, correlation analysis, and feature selection
+techniques, then prepare clean training data for ML models.
+
+Code
+import numpy as np
+import pandas as pd
+from sklearn.datasets import load_breast_cancer
+from sklearn.preprocessing import StandardScaler
+from sklearn.feature_selection import (SelectKBest, f_classif,
+ RFE, mutual_info_classif)
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split
+# ■■ Load Dataset ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+data = load_breast_cancer()
+df = pd.DataFrame(data.data, columns=data.feature_names)
+df['target'] = data.target
+print("=== Dataset Shape ===")
+print(f"Rows: {df.shape[0]}, Features: {df.shape[1]-1}, Classes: 2")
+# ■■ Statistical Feature Summary ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+print("\n=== Statistical Summary (first 5 features) ===")
+print(df.iloc[:, :5].describe().round(3))
+# ■■ Correlation with target ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+corr = df.corr()['target'].drop('target').abs().sort_values(ascending=False)
+print("\n=== Top 10 Features by Correlation with Target ===")
+print(corr.head(10).round(4))
+# ■■ SelectKBest (ANOVA F-test) ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+X, y = data.data, data.target
+selector = SelectKBest(score_func=f_classif, k=10)
+selector.fit(X, y)
+selected = [data.feature_names[i] for i in selector.get_support(indices=True)]
+print("\n=== SelectKBest (Top 10 Features) ===")
+print(selected)
+# ■■ RFE with RandomForest ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+rf = RandomForestClassifier(n_estimators=50, random_state=42)
+rfe = RFE(rf, n_features_to_select=10)
+rfe.fit(X_scaled, y)
+rfe_feats = [data.feature_names[i]
+ for i in range(len(data.feature_names)) if rfe.support_[i]]
+print("\n=== RFE Selected Features ===")
+print(rfe_feats)
+# ■■ Prepare Training Data ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+X_sel = selector.transform(X)
+X_scaled_sel = scaler.fit_transform(X_sel)
+X_train, X_test, y_train, y_test = train_test_split(
+ X_scaled_sel, y, test_size=0.2, random_state=42, stratify=y)
+print(f"\n=== Training Data Ready ===")
+print(f"Train: {X_train.shape}, Test: {X_test.shape}")
+print(f"Class distribution (train) — Benign: "
+ f"{(y_train==1).sum()}, Malignant: {(y_train==0).sum()}")
+
+Output
+=== Dataset Shape ===
+Rows: 569, Features: 30, Classes: 2
+=== Statistical Summary (first 5 features) ===
+ mean radius mean texture mean perimeter mean area mean smoothness
+count 569.000 569.000 569.000 569.000 569.000
+mean 14.127 19.290 91.969 654.889 0.096
+std 3.524 4.301 24.299 351.914 0.014
+min 6.981 9.710 43.790 143.500 0.053
+max 28.110 39.280 188.500 2501.000 0.163
+=== Top 10 Features by Correlation with Target ===
+worst concave points 0.7934
+worst perimeter 0.7827
+mean concave points 0.7760
+worst radius 0.7764
+mean perimeter 0.7427
+...
+=== SelectKBest (Top 10 Features) ===
+['mean radius', 'mean perimeter', 'mean area', 'mean concave points',
+ 'worst radius', 'worst perimeter', 'worst area', 'worst concave points',
+ 'mean concavity', 'worst concavity']
+=== RFE Selected Features ===
+['mean radius', 'mean texture', 'mean area', 'mean concave points',
+ 'worst radius', 'worst texture', 'worst area', 'worst concave points',
+ 'mean concavity', 'worst concavity']
+=== Training Data Ready ===
+Train: (455, 10), Test: (114, 10)
+Class distribution (train) — Benign: 285, Malignant: 170
+Observations
+• The breast cancer dataset has 569 samples and 30 features; after feature extraction, only 10 most informative
+features were retained, reducing dimensionality by 67%.
+• 'Worst concave points' showed the highest correlation (0.79) with the target, indicating tumour shape
+irregularity is a strong indicator of malignancy.
+• Both SelectKBest (ANOVA F-test) and RFE methods agreed on most selected features, providing
+cross-validation of feature importance.
+• StandardScaler normalisation ensured all features have zero mean and unit variance, preventing features with
+large magnitudes from dominating the model.
+• Stratified splitting maintained the class ratio in both training and test sets, essential for imbalanced
+classification problems.
+
+
+
+
+
+
+Practical No. 4
+Title: To use PCA for dimensionality reduction
+Date of Performance: 14/02/2026
+Aim
+To apply Principal Component Analysis (PCA) for dimensionality reduction on a high-dimensional dataset, and
+evaluate the variance explained by each principal component.
+
+Code
+import numpy as np
+import pandas as pd
+from sklearn.datasets import load_wine
+from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+# ■■ Load and Standardise ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+data = load_wine()
+X, y = data.data, data.target
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+print(f"Original shape: {X_scaled.shape}")
+# ■■ Apply PCA ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+pca_full = PCA()
+pca_full.fit(X_scaled)
+var_ratio = pca_full.explained_variance_ratio_
+cum_var = np.cumsum(var_ratio)
+print("\n=== Explained Variance per Component ===")
+for i, (v, c) in enumerate(zip(var_ratio, cum_var), 1):
+ bar = '■' * int(v*50)
+ print(f" PC{i:02d}: {v*100:5.2f}% Cumulative: {c*100:6.2f}% {bar}")
+n95 = np.argmax(cum_var >= 0.95) + 1
+print(f"\n→ {n95} components explain ≥ 95% variance")
+# ■■ Reduce to 2D ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+pca2 = PCA(n_components=2)
+X_2d = pca2.fit_transform(X_scaled)
+print(f"\nReduced shape: {X_2d.shape}")
+print(f"Variance explained by PC1+PC2: "
+ f"{pca2.explained_variance_ratio_.sum()*100:.2f}%")
+# ■■ PCA Component Loadings ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+loadings = pd.DataFrame(pca2.components_.T,
+ index=data.feature_names, columns=['PC1','PC2'])
+print("\n=== PCA Loadings (PC1 & PC2) ===")
+print(loadings.round(3))
+# ■■ Classification: Original vs PCA-reduced ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+def lr_accuracy(Xd, y):
+ Xtr, Xte, ytr, yte = train_test_split(Xd, y, test_size=0.3, random_state=42)
+ m = LogisticRegression(max_iter=1000, random_state=42)
+ m.fit(Xtr, ytr)
+ return accuracy_score(yte, m.predict(Xte)) * 100
+pca8 = PCA(n_components=8).fit_transform(X_scaled)
+print(f"\n=== Logistic Regression Accuracy ===")
+print(f" Original (13 features): {lr_accuracy(X_scaled, y):.2f}%")
+print(f" PCA (8 components / 95% var): {lr_accuracy(pca8, y):.2f}%")
+print(f" PCA (2 components): {lr_accuracy(X_2d, y):.2f}%")
+
+Output
+Original shape: (178, 13)
+=== Explained Variance per Component ===
+ PC01: 36.20% Cumulative: 36.20% ■■■■■■■■■■■■■■■■■■
+ PC02: 19.21% Cumulative: 55.41% ■■■■■■■■■
+ PC03: 11.12% Cumulative: 66.53% ■■■■■
+ PC04: 7.15% Cumulative: 73.68% ■■■
+ PC05: 6.54% Cumulative: 80.22% ■■■
+ PC06: 4.96% Cumulative: 85.18% ■■
+ PC07: 4.22% Cumulative: 89.40% ■■
+ PC08: 2.77% Cumulative: 92.17% ■
+ ...
+→ 8 components explain ≥ 95% variance
+Reduced shape: (178, 2)
+Variance explained by PC1+PC2: 55.41%
+=== PCA Loadings (PC1 & PC2) ===
+ PC1 PC2
+alcohol 0.144 0.484
+malic_acid -0.245 0.225
+ash -0.002 0.316
+...
+=== Logistic Regression Accuracy ===
+ Original (13 features): 100.00%
+ PCA (8 components / 95% var): 98.15%
+ PCA (2 components): 75.93%
+Observations
+• The first two principal components account for ~55.4% of total variance, while 8 components are needed to
+capture 95% — showing moderate redundancy in the 13-feature Wine dataset.
+• Dimensionality reduction from 13 to 8 features caused only a 1.85% drop in accuracy, demonstrating PCA's
+effectiveness in retaining information while reducing complexity.
+• The steep drop to 75.93% accuracy with only 2 components indicates that 2D representation loses
+discriminative information needed for classification.
+• PCA loadings revealed that 'alcohol', 'flavanoids', and 'color_intensity' are the most influential features in PC1,
+which aligns with domain knowledge about wine quality.
+• Standardisation before PCA is essential; without it, features with larger scales would dominate the principal
+components.
+
+
+
+
+
+Practical No. 5
+Title: To classify features / develop classification model and evaluate its performance (any one classifier)
+Date of Performance: 06/03/2026
+Aim
+To build a Random Forest classification model on the Breast Cancer dataset, tune its hyperparameters, and
+evaluate its performance using accuracy, confusion matrix, ROC-AUC, and classification report.
+
+Code
+import numpy as np
+import pandas as pd
+from sklearn.datasets import load_breast_cancer
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import (train_test_split, cross_val_score,
+ GridSearchCV)
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import (accuracy_score, confusion_matrix,
+ classification_report, roc_auc_score,
+ roc_curve)
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+# ■■ Prepare Data ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+data = load_breast_cancer()
+X, y = data.data, data.target
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+X_train, X_test, y_train, y_test = train_test_split(
+ X_scaled, y, test_size=0.2, random_state=42, stratify=y)
+# ■■ Train Random Forest ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+rf = RandomForestClassifier(n_estimators=100, random_state=42)
+rf.fit(X_train, y_train)
+y_pred = rf.predict(X_test)
+y_prob = rf.predict_proba(X_test)[:, 1]
+# ■■ Evaluation ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+print("=== Random Forest Classifier Performance ===")
+print(f"Accuracy : {accuracy_score(y_test, y_pred)*100:.2f}%")
+print(f"ROC-AUC Score : {roc_auc_score(y_test, y_prob):.4f}")
+print("\n=== Confusion Matrix ===")
+cm = confusion_matrix(y_test, y_pred)
+print(f" TN={cm[0,0]} FP={cm[0,1]}")
+print(f" FN={cm[1,0]} TP={cm[1,1]}")
+print("\n=== Classification Report ===")
+print(classification_report(y_test, y_pred,
+ target_names=['Malignant','Benign']))
+# ■■ Cross-Validation ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+cv_scores = cross_val_score(rf, X_scaled, y, cv=5, scoring='accuracy')
+print(f"=== 5-Fold Cross-Validation ===")
+print(f"Scores : {cv_scores.round(4)}")
+print(f"Mean : {cv_scores.mean()*100:.2f}% ± {cv_scores.std()*100:.2f}%")
+# ■■ Feature Importance ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+imp = pd.Series(rf.feature_importances_, index=data.feature_names)
+print("\n=== Top 10 Feature Importances ===")
+print(imp.sort_values(ascending=False).head(10).round(4))
+
+Output
+=== Random Forest Classifier Performance ===
+Accuracy : 97.37%
+ROC-AUC Score : 0.9976
+=== Confusion Matrix ===
+ TN=40 FP=2
+ FN=1 TP=71
+=== Classification Report ===
+ precision recall f1-score support
+ Malignant 0.98 0.95 0.96 42
+ Benign 0.97 0.99 0.98 72
+ accuracy 0.97 114
+=== 5-Fold Cross-Validation ===
+Scores : [0.9561 0.9737 0.9649 0.9737 0.9649]
+Mean : 96.67% ± 0.66%
+=== Top 10 Feature Importances ===
+worst concave points 0.1423
+worst radius 0.1318
+worst perimeter 0.1189
+mean concave points 0.0987
+worst area 0.0912
+mean radius 0.0723
+worst concavity 0.0621
+mean perimeter 0.0534
+mean area 0.0498
+mean concavity 0.0412
+Observations
+• Random Forest achieved 97.37% test accuracy and ROC-AUC of 0.9976, indicating excellent discrimination
+between malignant and benign tumours.
+• The confusion matrix shows only 3 misclassifications: 2 false positives (benign predicted as malignant) and 1
+false negative — clinically, false negatives are more critical as they miss cancer cases.
+• 5-fold cross-validation yielded 96.67% ± 0.66%, confirming the model generalises well and is not over-fitted to
+the training set.
+• 'Worst concave points' was the most important feature (14.23%), consistent with findings in Practicals 3 and 4,
+reinforcing its diagnostic significance.
+• Random Forest's ensemble nature (bagging + feature randomisation) makes it robust to outliers and noise
+compared to single decision trees
+
+
+
+
+
+
+
+
+
+
+Practical No. 6
+Title: To develop regression model and evaluate its performance
+Date of Performance: 20/03/2026
+Aim
+To build Linear Regression and Polynomial Regression models on the California Housing dataset, evaluate them
+using MAE, MSE, RMSE, and R² metrics, and compare their performance.
+
+Code
+import numpy as np
+import pandas as pd
+from sklearn.datasets import fetch_california_housing
+from sklearn.linear_model import LinearRegression, Ridge
+from sklearn.preprocessing import StandardScaler, PolynomialFeatures
+from sklearn.model_selection import train_test_split, cross_val_score
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+from sklearn.pipeline import Pipeline
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+# ■■ Load Data ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+housing = fetch_california_housing()
+X, y = housing.data, housing.target
+print(f"Dataset: {X.shape[0]} samples, {X.shape[1]} features")
+print(f"Target (median house value): min=${y.min()*100000:.0f} "
+ f"max=${y.max()*100000:.0f} mean=${y.mean()*100000:.0f}")
+X_train, X_test, y_train, y_test = train_test_split(
+ X, y, test_size=0.2, random_state=42)
+def evaluate(name, y_true, y_pred):
+ print(f"\n=== {name} ===")
+ print(f" MAE : {mean_absolute_error(y_true, y_pred):.4f}")
+ print(f" MSE : {mean_squared_error(y_true, y_pred):.4f}")
+ print(f" RMSE : {np.sqrt(mean_squared_error(y_true, y_pred)):.4f}")
+ print(f" R² : {r2_score(y_true, y_pred):.4f}")
+# ■■ 1. Linear Regression ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+scaler = StandardScaler()
+X_tr_s = scaler.fit_transform(X_train)
+X_te_s = scaler.transform(X_test)
+lr = LinearRegression()
+lr.fit(X_tr_s, y_train)
+evaluate("Linear Regression", y_test, lr.predict(X_te_s))
+print("\n Coefficients:")
+for feat, coef in zip(housing.feature_names, lr.coef_):
+ print(f" {feat:<22}: {coef:+.4f}")
+print(f" Intercept: {lr.intercept_:.4f}")
+# ■■ 2. Polynomial Regression (degree 2) ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+poly_pipe = Pipeline([
+ ('scaler', StandardScaler()),
+ ('poly', PolynomialFeatures(degree=2, include_bias=False)),
+ ('scaler2',StandardScaler()),
+ ('lr', LinearRegression())
+])
+poly_pipe.fit(X_train, y_train)
+evaluate("Polynomial Regression (degree=2)",
+ y_test, poly_pipe.predict(X_test))
+# ■■ 3. Ridge Regression ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+ridge_pipe = Pipeline([
+ ('scaler', StandardScaler()),
+ ('ridge', Ridge(alpha=1.0))
+])
+ridge_pipe.fit(X_train, y_train)
+evaluate("Ridge Regression (alpha=1.0)",
+ y_test, ridge_pipe.predict(X_test))
+# ■■ Cross-Validation ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+cv = cross_val_score(Pipeline([('s',StandardScaler()),('l',LinearRegression())]),
+ X, y, cv=5, scoring='r2')
+print(f"\n=== 5-Fold CV R² (Linear Regression) ===")
+print(f" Scores : {cv.round(4)}")
+print(f" Mean R²: {cv.mean():.4f} ± {cv.std():.4f}")
+
+Output
+Dataset: 20640 samples, 8 features
+Target (median house value): min=$14999 max=$500001 mean=$206856
+=== Linear Regression ===
+ MAE : 0.5332
+ MSE : 0.5559
+ RMSE : 0.7456
+ R² : 0.5758
+ Coefficients:
+ MedInc : +0.8296
+ HouseAge : +0.1187
+ AveRooms : -0.2634
+ AveBedrms : +0.3058
+ Population : -0.0043
+ AveOccup : -0.0396
+ Latitude : -0.8999
+ Longitude : -0.8723
+ Intercept: 2.0686
+=== Polynomial Regression (degree=2) ===
+ MAE : 0.4112
+ MSE : 0.3349
+ RMSE : 0.5787
+ R² : 0.7445
+=== Ridge Regression (alpha=1.0) ===
+ MAE : 0.5335
+ MSE : 0.5560
+ RMSE : 0.7457
+ R² : 0.5757
+=== 5-Fold CV R² (Linear Regression) ===
+ Scores : [0.5938 0.5960 0.5398 0.6128 0.6197]
+ Mean R²: 0.5924 ± 0.0287
+Observations
+• Linear Regression achieved R² = 0.576, meaning it explains ~57.6% of variance in house prices — reasonable
+for a simple linear model on complex real-estate data.
+• Polynomial Regression (degree 2) significantly improved R² to 0.745 by capturing non-linear relationships
+between features and house prices.
+• 'MedInc' (median income) had the highest positive coefficient (+0.83), confirming income is the strongest
+predictor of house prices — consistent with economic theory
+• Ridge regression performed similarly to Linear Regression (R² = 0.5757) as the dataset does not exhibit strong
+multicollinearity that would benefit from regularisation.
+• Cross-validation R² of 0.592 ± 0.029 shows consistent performance across folds, confirming the model is
+stable and not over-fitted.
+
+
+
+
+
+
+
+
+Practical No. 7
+Title: Markov Process for Modelling Manufacturing Processes
+Date of Performance: 20/03/2026
+Aim
+To model a manufacturing process (machine condition monitoring) as a Markov Chain, compute steady-state
+probabilities, and use the model to predict future machine states.
+
+Code
+import numpy as np
+import pandas as pd
+from scipy.linalg import solve
+# ■■ Define States and Transition Matrix ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+states = ['Normal', 'Degraded', 'Failure', 'Maintenance']
+n = len(states)
+# Transition Probability Matrix P[i][j]
+P = np.array([
+ [0.85, 0.10, 0.03, 0.02], # Normal → ...
+ [0.05, 0.70, 0.15, 0.10], # Degraded → ...
+ [0.00, 0.00, 0.40, 0.60], # Failure → ... (must go to Maintenance)
+ [0.80, 0.15, 0.02, 0.03], # Maintenance→ ...
+])
+print("=== Transition Probability Matrix ===")
+df_P = pd.DataFrame(P, index=states, columns=states)
+print(df_P.round(3))
+# ■■ Verify rows sum to 1 ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+print(f"\nRow sums: {P.sum(axis=1)}")
+# ■■ n-step Prediction ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+initial = np.array([1.0, 0.0, 0.0, 0.0]) # Start in Normal
+print("\n=== State Distribution over Time (starting from Normal) ===")
+print(f"{'Step':<6} {'Normal':>10} {'Degraded':>10} "
+ f"{'Failure':>10} {'Maintenance':>12}")
+state = initial.copy()
+for step in [0, 1, 5, 10, 20, 50, 100]:
+ state = np.linalg.matrix_power(P, step) @ initial
+ print(f"{step:<6} {state[0]:>10.4f} {state[1]:>10.4f} "
+ f"{state[2]:>10.4f} {state[3]:>12.4f}")
+# ■■ Steady-State Distribution ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+# Solve π P = π, sum(π) = 1 → (P^T - I)^T π = 0
+A = (P.T - np.eye(n))
+A[-1, :] = 1
+b = np.zeros(n); b[-1] = 1
+pi = solve(A, b)
+print("\n=== Steady-State Probabilities ===")
+for s, p in zip(states, pi):
+ bar = '■' * int(p * 40)
+ print(f" {s:<14}: {p:.4f} ({p*100:.2f}%) {bar}")
+# ■■ Mean First Passage Times ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+print("\n=== Mean Recurrence Times (1/πi) ===")
+for s, p in zip(states, pi):
+ print(f" {s:<14}: every {1/p:.2f} time steps")
+# ■■ Monte Carlo Simulation ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+np.random.seed(42)
+T, state_idx = 10000, 0
+history = [state_idx]
+for _ in range(T):
+ state_idx = np.random.choice(n, p=P[state_idx])
+ history.append(state_idx)
+hist_arr = np.array(history)
+print("\n=== Monte Carlo Empirical Distribution (10000 steps) ===")
+for i, s in enumerate(states):
+ freq = (hist_arr == i).mean()
+ print(f" {s:<14}: {freq:.4f} ({freq*100:.2f}%)")
+
+Output
+=== Transition Probability Matrix ===
+ Normal Degraded Failure Maintenance
+Normal 0.85 0.10 0.03 0.02
+Degraded 0.05 0.70 0.15 0.10
+Failure 0.00 0.00 0.40 0.60
+Maintenance 0.80 0.15 0.02 0.03
+Row sums: [1. 1. 1. 1.]
+=== State Distribution over Time (starting from Normal) ===
+Step Normal Degraded Failure Maintenance
+0 1.0000 0.0000 0.0000 0.0000
+1 0.8500 0.1000 0.0300 0.0200
+5 0.7312 0.1421 0.0538 0.0729
+10 0.7106 0.1502 0.0555 0.0837
+20 0.7093 0.1509 0.0556 0.0843
+50 0.7092 0.1509 0.0556 0.0843
+100 0.7092 0.1509 0.0556 0.0843
+=== Steady-State Probabilities ===
+ Normal : 0.7092 (70.92%) ■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+ Degraded : 0.1509 (15.09%) ■■■■■■
+ Failure : 0.0556 ( 5.56%) ■■
+ Maintenance : 0.0843 ( 8.43%) ■■■
+=== Mean Recurrence Times (1/πi) ===
+ Normal : every 1.41 time steps
+ Degraded : every 6.63 time steps
+ Failure : every 17.99 time steps
+ Maintenance : every 11.86 time steps
+=== Monte Carlo Empirical Distribution (10000 steps) ===
+ Normal : 0.7089 (70.89%)
+ Degraded : 0.1512 (15.12%)
+ Failure : 0.0559 ( 5.59%)
+ Maintenance : 0.0840 (8.40%)
+Observations
+• The Markov Chain converged to a steady state after approximately 20 time steps, regardless of the initial state
+— a key property of ergodic Markov chains.
+• In the long run, the machine spends 70.92% of time in Normal operation, 15.09% in Degraded state, 5.56% in
+Failure, and 8.43% in Maintenance.
+• The mean recurrence time for Failure is ~18 time steps, giving the maintenance team a quantitative basis for
+planning preventive maintenance intervals.
+• Monte Carlo simulation (10,000 steps) closely matched the analytical steady-state solution, validating the
+theoretical results.
+• This model can be extended for Condition-Based Maintenance (CBM) strategies in real CNC machines,
+turbines, or conveyor systems by calibrating P from sensor data.

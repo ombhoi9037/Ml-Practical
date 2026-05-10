@@ -1,0 +1,41 @@
+# Step 1: Import libraries
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+# Importing Linear Regression algorithm
+from sklearn.linear_model import LinearRegression
+from sklearn.model_selection import train_test_split
+# Step 2: Create dataset (PM2.5, PM10 → AQI)
+data = {
+'PM25': [50, 80, 100, 120, 150, 180, 200, 220, 250, 300],
+'PM10': [80, 120, 150, 180, 200, 220, 250, 270, 300, 350],
+'AQI': [60, 90, 120, 150, 180, 210, 240, 270, 300, 350]
+}
+df = pd.DataFrame(data)
+# Step 3: Define input (X) and output (Y)
+X = df[['PM25', 'PM10']]
+Y = df['AQI']
+# Step 4: Split dataset
+X_train, X_test, Y_train, Y_test = train_test_split(
+X, Y, test_size=0.2, random_state=0
+)
+# Step 5: Apply Linear Regression Algorithm
+# (This is the main algorithm used in the project)
+model = LinearRegression()
+# Step 6: Train model
+model.fit(X_train, Y_train)
+# Step 7: Predict AQI
+Y_pred = model.predict(X_test)
+# Step 8: Show results
+print("Algorithm Used: Linear Regression")
+print("Actual AQI:", Y_test.values)
+print("Predicted AQI:", Y_pred)
+# Step 9: Graph (PM2.5 vs AQI)
+plt.scatter(df['PM25'], df['AQI'])
+plt.xlabel("PM2.5")
+plt.ylabel("AQI")
+plt.title("AQI Prediction using Linear Regression")
+plt.show()
+Algorithm Used: Linear Regression
+Actual AQI: [120 300]
+Predicted AQI: [123.01206287 296.58949677]
